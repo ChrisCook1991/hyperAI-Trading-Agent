@@ -1,0 +1,582 @@
+/* ─── My Agents Page Design System ────────────────────────────────
+ * Matched to Figma: https://clip-alike-97102346.figma.site/agents
+ * Color palette: light blue-gray background, white cards, blue primary
+ */
+
+/* ── Page Layout ───────────────────────────────────────────────── */
+.pageRoot {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface-cool);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  color: var(--text-primary);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface-card);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebarBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 8px;
+}
+.brandIcon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: white;
+}
+.brandName { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.brandSub { font-size: 11px; color: var(--text-secondary); }
+
+.navSection { flex: 1; padding: 4px 12px; }
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  margin-bottom: 2px;
+}
+.navItem:hover { background: var(--surface-cool); color: var(--brand-primary); }
+.navItemActive { background: var(--surface-blue-light); color: var(--brand-primary); font-weight: 600; }
+.navIcon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+.sidebarFooter { padding: 12px; border-top: 1px solid var(--border-light); }
+.navItemDanger { color: var(--danger); }
+.navItemDanger:hover { background: var(--danger-light); color: var(--danger); }
+
+/* ── Main Content ──────────────────────────────────────────────── */
+.mainContent {
+  flex: 1;
+  padding: 32px;
+  max-width: 1100px;
+  overflow-x: hidden;
+}
+.pageTitle { font-size: 28px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+.pageSubtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 28px; }
+
+/* ── Agent Intro Card ──────────────────────────────────────────── */
+.agentCard {
+  background: var(--surface-card);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 12px rgba(59,109,234,0.06);
+}
+.agentCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.agentAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--brand-secondary), var(--brand-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.agentCardTitle { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px; }
+.agentCardDesc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 20px; }
+.btnStartConvo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--brand-primary);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(59,109,234,0.3);
+}
+.btnStartConvo:hover { background: var(--brand-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,109,234,0.35); }
+
+/* ── Secure Modal ──────────────────────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 60, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 40px;
+}
+.secureModal {
+  background: var(--surface-card);
+  border-radius: 24px;
+  padding: 40px 36px;
+  width: 380px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  animation: slideUp 0.25s ease;
+}
+.secureIconWrap {
+  width: 80px;
+  height: 80px;
+  background: var(--surface-blue-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 36px;
+}
+.secureTitle { font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px; }
+.secureDesc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 24px; }
+.secureBadges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 28px; }
+.secureBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-cool);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+.btnContinue {
+  width: 100%;
+  padding: 14px;
+  background: var(--brand-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 12px;
+}
+.btnContinue:hover { background: var(--brand-hover); }
+.secureNote { font-size: 12px; color: var(--text-secondary); }
+
+/* ── Chat Panel (Inline) ───────────────────────────────────────── */
+.chatPanelWrap {
+  background: var(--surface-card);
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 12px rgba(59,109,234,0.06);
+  margin-bottom: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  animation: fadeIn 0.3s ease;
+}
+.chatPanelHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-card);
+  flex-shrink: 0;
+}
+.chatAgentInfo { display: flex; align-items: center; gap: 12px; }
+.chatAgentAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand-secondary), var(--brand-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.chatAgentName { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.encryptedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+.chatHeaderActions { display: flex; gap: 8px; }
+.chatIconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--surface-cool);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.chatIconBtn:hover { background: var(--border-light); color: var(--text-primary); }
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--surface-background);
+}
+.chatMessages::-webkit-scrollbar { width: 4px; }
+.chatMessages::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+.msgAI { display: flex; gap: 10px; align-items: flex-start; }
+.msgAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand-secondary), var(--brand-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.msgBubbleAI {
+  max-width: 80%;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: 4px 14px 14px 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.msgUser { display: flex; justify-content: flex-end; }
+.msgBubbleUser {
+  max-width: 75%;
+  background: var(--brand-primary);
+  color: white;
+  border-radius: 14px 14px 4px 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.msgWidget { width: 100%; }
+
+.typingDots { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); animation: typingAnim 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+.quickChips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-light); background: var(--surface-background); }
+.chip {
+  padding: 7px 14px;
+  border-radius: 50px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.chip:hover:not(:disabled) { background: var(--brand-primary); color: white; border-color: var(--brand-primary); }
+.chip:disabled, .chipDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--surface-secondary);
+  border-color: var(--border-light);
+  color: var(--text-tertiary);
+}
+
+.chatInputArea {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--surface-card);
+  flex-shrink: 0;
+}
+.chatTextarea {
+  flex: 1;
+  border: 1.5px solid var(--border-light);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--surface-background);
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+  max-height: 100px;
+  transition: border-color 0.15s;
+}
+.chatTextarea:focus { border-color: var(--brand-primary); background: var(--surface-card); }
+.chatTextarea::placeholder { color: var(--text-tertiary); }
+.sendBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.sendBtn:hover:not(:disabled) { background: var(--brand-hover); transform: scale(1.05); }
+.sendBtn:disabled { background: var(--surface-secondary); cursor: not-allowed; }
+.sendSpinner { width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.chatDisclaimer { text-align: center; font-size: 11px; color: var(--text-tertiary); padding: 6px; flex-shrink: 0; }
+
+/* ── Active Trading Tasks Dashboard ───────────────────────────── */
+.dashSection { margin-bottom: 32px; }
+.dashHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dashTitle { font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+.dashSubtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.btnViewAll {
+  padding: 8px 18px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-card);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btnViewAll:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+/* ── Task Card ─────────────────────────────────────────────────── */
+.taskCard {
+  background: var(--surface-card);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+}
+.taskCard:hover { box-shadow: 0 4px 16px rgba(59,109,234,0.08); }
+.taskCard.paused { opacity: 0.65; }
+
+.taskCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.taskInfo { display: flex; align-items: flex-start; gap: 12px; }
+.taskIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-blue-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.taskName { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+.taskDesc { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.statusActive { background: var(--success-light); color: var(--success); }
+.statusPaused { background: var(--warning-light); color: var(--warning); }
+.statusStopped { background: var(--danger-light); color: var(--danger); }
+
+.taskMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+.metricLabel { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.metricValue { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.metricValuePos { color: var(--success); }
+.metricValueNeg { color: var(--danger); }
+
+.taskProgress { margin-bottom: 16px; }
+.progressLabel { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.progressTrack { height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.progressFill { height: 100%; background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary)); border-radius: 3px; transition: width 0.5s ease; }
+
+.taskActions { display: flex; gap: 10px; }
+.btnTaskAction {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1.5px solid var(--border-light);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btnTaskAction:hover { border-color: var(--brand-primary); color: var(--brand-primary); background: var(--surface-blue-light); }
+.btnTaskClose { color: var(--danger); }
+.btnTaskClose:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.btnTaskPrimary { background: var(--brand-primary); color: white; border-color: var(--brand-primary); }
+.btnTaskPrimary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: white; }
+
+/* ── Confirm Overlay (for dashboard actions) ───────────────────── */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,60,0.4);
+  backdrop-filter: blur(3px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.confirmBox {
+  background: var(--surface-card);
+  border-radius: 20px;
+  padding: 32px;
+  width: 380px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  animation: slideUp 0.2s ease;
+}
+.confirmIcon { font-size: 36px; text-align: center; margin-bottom: 12px; }
+.confirmTitle { font-size: 18px; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 8px; }
+.confirmDesc { font-size: 14px; color: var(--text-secondary); text-align: center; line-height: 1.6; margin-bottom: 24px; }
+.confirmWarning {
+  background: var(--warning-light);
+  border: 1px solid var(--warning);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--warning);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.confirmBtns { display: flex; gap: 10px; }
+.btnConfirmCancel { flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border-light); background: var(--surface-card); font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+.btnConfirmCancel:hover { border-color: var(--text-primary); color: var(--text-primary); }
+.btnConfirmOk { flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--danger); color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btnConfirmOk:hover { background: var(--danger); }
+.btnConfirmOkBlue { background: var(--brand-primary); }
+.btnConfirmOkBlue:hover { background: var(--brand-hover); }
+
+/* ── Secure Screen (inside chat panel) ────────────────────────── */
+.secureScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;  /* icon/title top-center, button bottom */
+  padding: 32px 28px 24px;
+  background: var(--surface-background);
+  animation: fadeIn 0.25s ease;
+}
+/* Upper group: centered within its flex space */
+.secureScreenContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.secureScreenIcon {
+  width: 72px;
+  height: 72px;
+  background: var(--surface-blue-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 18px;
+}
+.secureScreenTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+.secureScreenDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 20px;
+  max-width: 320px;
+}
+/* Bottom group: button + note pinned to bottom */
+.secureScreenActions {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ── Animations ────────────────────────────────────────────────── */
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes typingAnim { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .taskMetrics { grid-template-columns: repeat(2, 1fr); }
+  .mainContent { padding: 16px; }
+}

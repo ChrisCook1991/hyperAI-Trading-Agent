@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HyperAI Spec JSON",
+  "description": "AI Agent 输出的结构化 UI 描述，由 SpecRenderer 解析渲染。基于 PRD 4.5.4。",
+  "type": "object",
+  "required": ["root", "elements", "context"],
+  "additionalProperties": false,
+  "properties": {
+    "root": {
+      "type": "string",
+      "description": "根元素的 element_id，解析引擎从此入口遍历"
+    },
+    "elements": {
+      "type": "object",
+      "description": "所有元素的扁平字典",
+      "additionalProperties": { "$ref": "#/definitions/Element" }
+    },
+    "context": {
+      "type": "object",
+      "required": ["locale"],
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "type": "string",
+          "enum": ["zh-CN", "zh-TW", "en"],
+          "description": "渲染语言"
+        },
+        "emphasis_level": {
+          "type": "string",
+          "enum": ["default", "warning", "danger"],
+          "description": "整体强调等级，映射到 UXD semantic color token"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Element": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "组件类型名，必须在注册表白名单内",
+          "enum": [
+            "RiskPreferenceSelector", "ReturnRateSelector", "AmountInput",
+            "AssetMultiSelect", "LeverageSlider", "MarketTypeSelector", "TpSlInput",
+            "OrderPreviewCard", "StrategyPreviewCard", "TransferPanel",
+            "BridgePanel", "ConfirmDialog", "RiskBanner", "StrategyStatusCard",
+            "ExecutionProgress",
+            "Text", "Number", "Row", "Column", "Divider",
+            "Button", "Link", "Icon", "Badge", "KeyValue"
+          ]
+        },
+        "props": {
+          "type": "object",
+          "description": "传给组件的数据属性。禁止包含样式字段。"
+        },
+        "children": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "子元素 id 数组（仅容器型元素支持）",
+          "maxItems": 20
+        },
+        "events": {
+          "type": "object",
+          "description": "事件绑定，value 为 event_id",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  }
+}
