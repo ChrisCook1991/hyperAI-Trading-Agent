@@ -2142,7 +2142,7 @@ Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
               display: 'flex', flexDirection: 'column', gap: '4px'
             }}>
               {isPerp ? (
-                <>
+                <React.Fragment>
                   <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>未实现盈亏</span>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                     <span style={{ fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-bold)', color: pnlColor, fontFamily: 'var(--font-mono)' }}>
@@ -2154,14 +2154,14 @@ Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
                       </span>
                     )}
                   </div>
-                </>
+                </React.Fragment>
               ) : (
-                <>
+                <React.Fragment>
                   <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>资产价值</span>
                   <span style={{ fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                     ${sizeUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}
                   </span>
-                </>
+                </React.Fragment>
               )}
             </div>
 
