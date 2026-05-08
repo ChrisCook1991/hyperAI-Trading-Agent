@@ -218,6 +218,72 @@ body {
             </DCArtboard>
           </DCSection>
 
+        
+          <DCSection id="position-cards" title="仓位预览面板 (PositionPreviewCard)">
+            <DCArtboard 
+              id="position-perp-long" 
+              label="PositionPreviewCard - 合约做多 (Perp Long)"
+              width={500}
+              height={550}
+            >
+              <div style={{ padding: 'var(--spacing-xl)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <PositionPreviewCard 
+                  type="perp"
+                  asset="ETH"
+                  direction="long"
+                  size={1.5}
+                  sizeUsd={3544.65}
+                  entryPrice={2350.10}
+                  markPrice={2363.10}
+                  leverage={5}
+                  unrealizedPnl={19.50}
+                  roePercent={2.76}
+                  liquidationPrice={1890.00}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="position-perp-short" 
+              label="PositionPreviewCard - 合约做空 (Perp Short)"
+              width={500}
+              height={550}
+            >
+              <div style={{ padding: 'var(--spacing-xl)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <PositionPreviewCard 
+                  type="perp"
+                  asset="SOL"
+                  direction="short"
+                  size={20}
+                  sizeUsd={2900.00}
+                  entryPrice={145.00}
+                  markPrice={147.20}
+                  leverage={3}
+                  unrealizedPnl={-44.00}
+                  roePercent={-4.55}
+                  liquidationPrice={190.50}
+                />
+              </div>
+            </DCArtboard>
+
+            <DCArtboard 
+              id="position-spot" 
+              label="PositionPreviewCard - 现货 (Spot)"
+              width={500}
+              height={500}
+            >
+              <div style={{ padding: 'var(--spacing-xl)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <PositionPreviewCard 
+                  type="spot"
+                  asset="HYPE"
+                  size={1200}
+                  sizeUsd={2450.00}
+                  markPrice={2.04}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+
         </DesignCanvas>
 
 const DC = {
@@ -2003,6 +2069,132 @@ Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
     };
     
     // ==================== Demo Application ====================
+    
+    // ==================== 5. PositionPreviewCard ====================
+    const PositionPreviewCard = ({
+      platform = 'Hyperliquid',
+      type = 'perp',
+      asset = 'ETH',
+      direction = 'long',
+      size = 0.0084,
+      sizeUsd = 19.85,
+      entryPrice = 2375.4,
+      markPrice = 2363.1,
+      leverage = 2,
+      unrealizedPnl = -0.10,
+      roePercent = -0.51,
+      liquidationPrice = 1250,
+      onClose = () => {},
+      onAdjustLeverage = () => {},
+      onShare = () => {}
+    }) => {
+      const isPerp = type === 'perp';
+      const isLong = direction === 'long';
+      
+      const pnlColor = (unrealizedPnl || 0) >= 0 ? 'var(--success)' : 'var(--danger)';
+      const pnlPrefix = (unrealizedPnl || 0) > 0 ? '+' : '';
+      const roePrefix = (roePercent || 0) > 0 ? '+' : '';
+      
+      const typeLabel = isPerp ? (isLong ? '做多 (Long)' : '做空 (Short)') : '现货 (Spot)';
+      const typeColor = isPerp ? (isLong ? 'var(--success)' : 'var(--danger)') : 'var(--brand-primary)';
+
+      const Row = ({ k, v, mono, bold, danger }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{k}</span>
+          <span style={{
+            fontSize: bold ? 'var(--text-lg)' : 'var(--text-base)',
+            fontWeight: bold ? 'var(--weight-bold)' : 'var(--weight-semibold)',
+            fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+            color: danger ? 'var(--danger)' : 'var(--text-primary)',
+          }}>{v}</span>
+        </div>
+      );
+
+      return (
+        <div style={{
+          width: '100%', maxWidth: '480px', borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-card)', border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+        }}>
+          <div style={{ padding: 'var(--spacing-lg) var(--spacing-xl)', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              {platform} Position
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+                仓位预览面板
+              </div>
+              <span style={{
+                padding: '4px 8px', borderRadius: 'var(--radius-sm)',
+                background: `${typeColor}15`, color: typeColor,
+                fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-semibold)'
+              }}>
+                {asset} {typeLabel}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            <div style={{
+              background: isPerp ? `${pnlColor}08` : 'var(--surface-accent)',
+              border: `1px solid ${isPerp ? pnlColor : 'var(--brand-primary)'}20`,
+              borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-lg)',
+              display: 'flex', flexDirection: 'column', gap: '4px'
+            }}>
+              {isPerp ? (
+                <>
+                  <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>未实现盈亏</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-bold)', color: pnlColor, fontFamily: 'var(--font-mono)' }}>
+                      {pnlPrefix}${Math.abs(unrealizedPnl || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                    </span>
+                    {roePercent !== undefined && (
+                      <span style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-semibold)', color: pnlColor }}>
+                        ({roePrefix}{roePercent}%)
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>资产价值</span>
+                  <span style={{ fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                    ${sizeUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div style={{ marginTop: 'var(--spacing-sm)' }}>
+              <Row k="持仓数量" v={`${size} ${asset}`} mono bold />
+              <Row k="名义价值" v={`$${sizeUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}`} mono />
+              {isPerp && leverage && <Row k="杠杆倍数" v={`${leverage}x`} />}
+              <div style={{ height: '1px', background: 'var(--border-light)', margin: 'var(--spacing-md) 0' }} />
+              <Row k="标记价格 (Mark)" v={`$${markPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}`} mono />
+              {entryPrice && <Row k="入场价格 (Entry)" v={`$${entryPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}`} mono />}
+              {isPerp && liquidationPrice && (
+                <Row k="强平价格 (Liq)" v={`$${liquidationPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}`} mono bold danger />
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: 'var(--spacing-lg) var(--spacing-xl)', borderTop: '1px solid var(--border-light)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--danger)', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+              {isPerp ? '一键平仓' : '全部卖出'}
+            </button>
+            {isPerp && (
+              <button onClick={onAdjustLeverage} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontWeight: 'bold', cursor: 'pointer' }}>
+                调整杠杆
+              </button>
+            )}
+            <button onClick={onShare} style={{ padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontWeight: 'bold', cursor: 'pointer' }}>
+              分享 🔗
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     function StatusComponentsDemo() {
       const [progressStatus, setProgressStatus] = useState('processing');
       const [currentStep, setCurrentStep] = useState(0);
