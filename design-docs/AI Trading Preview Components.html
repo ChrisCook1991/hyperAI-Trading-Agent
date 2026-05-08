@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Trading Preview & Status Components - 设计规范</title>
+  <link rel="stylesheet" href="design-tokens.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: var(--font-body), var(--font-chinese);
+      background: var(--surface-background);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #root {
+      width: 100%;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel">
+    const { useState } = React;
+    const { DesignCanvas, DCArtboard, DCSection } = window;
+    
+    // ==================== 1. OrderPreviewCard ====================
+    const OrderPreviewCard = ({ 
+      platform = 'Hyperliquid',
+      marketType = 'perp', // 'perp' | 'spot'
+      action = 'open_long', // 'open_long' | 'open_short' | 'close' | 'buy' | 'sell'
+      asset = 'ETH',
+      orderType = 'market', // 'market' | 'limit'
+      sizeUsd = 500,
+      leverage = 2,
+      limitPrice = null,
+      tpPercent = null,
+      slPercent = null,
+      estimatedQty = 0.4,
+      estimatedFee = 1.25,
+      estimatedLiquidationPrice = 1250,
+      accountBalance = 3200,
+      currentPrice = 2500,
+      onConfirm = () => {},
+      onCancel = () => {},
+      loading = false
+    }) => {
+      const notionalUsd = marketType === 'perp' ? sizeUsd * leverage : sizeUsd;
+      
+      const getActionLabel = () => {
+        if (marketType === 'spot') {
+          return action === 'buy' ? '买入' : '卖出';
+        }
+        if (action === 'open_long') return '开多';
+        if (action === 'open_short') return '开空';
+        return '平仓';
+      };
+      
+      const getActionColor = () => {
+        if (action.includes('long') || action === 'buy') return '#10B981';
+        if (action.includes('short') || action === 'sell') return '#D4183D';
+        return '#007FFF';
+      };
+      
+      const showWarnings = marketType === 'perp' && (!slPercent || leverage > 5);
+      
+      return (
+        <div style={{
+          width: '100%',
+          maxWidth: '480px',
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-card)',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'hidden'
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            borderBottom: '1px solid var(--border-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-secondary)',
+                marginBottom: '4px'
+              }}>
+                {platform}
+              </div>
+              <div style={{
+                fontSize: 'var(--text-2xl)',
+                fontWeight: 'var(--weight-bold)',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-sm)'
+              }}>
+                订单预览
+                <span style={{
+                  fontSize: 'var(--text-xs)',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: marketType === 'perp' ? 'var(--surface-accent)' : 'var(--success-light)',
+                  color: marketType === 'perp' ? 'var(--brand-primary)' : 'var(--success)',
+                  fontWeight: 'var(--weight-semibold)'
+                }}>
+                  {marketType === 'perp' ? '永续合约' : '现货'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onCancel}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transition: 'all var(--transition-fast)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--border-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          
+          {/* Main Info */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-lg)'
+          }}>
+            {/* Action & Asset */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--spacing-md)',
+              padding: 'var(--spacing-lg)',
+              borderRadius: 'var(--radius-lg)',
+              background: `${getActionColor()}08`,
+              border: `1px solid ${getActionColor()}20`
+            }}>
+              <span style={{
+                fontSize: 'var(--text-3xl)',
+                fontWeight: 'var(--weight-bold)',
+                color: getActionColor()
+              }}>
+                {getActionLabel()}
+              </span>
+              <span style={{
+                fontSize: 'var(--text-3xl)',
+                fontWeight: 'var(--weight-bold)',
+                color: 'var(--text-primary)'
+              }}>
+                {asset}
+              </span>
+            </div>
+            
+            {/* Details Grid */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-md)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  订单类型
+                </span>
+                <span style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>
+                  {orderType === 'market' ? '市价单' : `限价单 @ $${limitPrice}`}
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  投入金额
+                </span>
+                <span style={{ 
+                  fontSize: 'var(--text-lg)', 
+                  fontWeight: 'var(--weight-bold)', 
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)' 
+                }}>
+                  ${sizeUsd.toLocaleString()} USDC
+                </span>
+              </div>
+              
+              {marketType === 'perp' && (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                      杠杆倍数
+                    </span>
+                    <span style={{ 
+                      fontSize: 'var(--text-lg)', 
+                      fontWeight: 'var(--weight-bold)',
+                      color: leverage > 3 ? 'var(--warning)' : 'var(--text-primary)'
+                    }}>
+                      {leverage}x
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                      名义仓位
+                    </span>
+                    <span style={{ 
+                      fontSize: 'var(--text-lg)', 
+                      fontWeight: 'var(--weight-bold)',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-primary)' 
+                    }}>
+                      ${notionalUsd.toLocaleString()}
+                    </span>
+                  </div>
+                </>
+              )}
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  预估数量
+                </span>
+                <span style={{ 
+                  fontSize: 'var(--text-base)', 
+                  fontWeight: 'var(--weight-semibold)',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)' 
+                }}>
+                  {estimatedQty} {asset}
+                </span>
+              </div>
+              
+              {(tpPercent || slPercent) && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 'var(--spacing-md)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface-cool)'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {tpPercent && (
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--success)' }}>
+                        📈 止盈: +{tpPercent}%
+                      </div>
+                    )}
+                    {slPercent && (
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--danger)' }}>
+                        📉 止损: -{slPercent}%
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div style={{ height: '1px', background: 'var(--border-light)', margin: 'var(--spacing-sm) 0' }} />
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  预估手续费
+                </span>
+                <span style={{ 
+                  fontSize: 'var(--text-sm)', 
+                  fontWeight: 'var(--weight-medium)',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)' 
+                }}>
+                  ${estimatedFee}
+                </span>
+              </div>
+              
+              {marketType === 'perp' && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                    强平价格
+                  </span>
+                  <span style={{ 
+                    fontSize: 'var(--text-base)', 
+                    fontWeight: 'var(--weight-bold)',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--danger)' 
+                  }}>
+                    ${estimatedLiquidationPrice.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  账户余额
+                </span>
+                <span style={{ 
+                  fontSize: 'var(--text-sm)', 
+                  fontWeight: 'var(--weight-medium)',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)' 
+                }}>
+                  ${accountBalance.toLocaleString()} USDC
+                </span>
+              </div>
+            </div>
+            
+            {/* Warnings */}
+            {showWarnings && (
+              <div style={{
+                padding: 'var(--spacing-md)',
+                borderRadius: 'var(--radius-md)',
+                background: !slPercent ? 'var(--warning-light)' : 'var(--danger-light)',
+                border: `1px solid ${!slPercent ? '#EAB30820' : '#D4183D20'}`
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 'var(--weight-semibold)',
+                  marginBottom: '4px'
+                }}>
+                  {!slPercent ? '⚠️ 未设置止损' : '⚠️ 高杠杆风险'}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)'
+                }}>
+                  {!slPercent 
+                    ? '建议设置止损以控制风险。未设置止损可能导致亏损扩大。'
+                    : `${leverage}x 杠杆下，市场小幅波动即可能触发强平，请谨慎操作。`
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Actions */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            borderTop: '1px solid var(--border-light)',
+            display: 'flex',
+            gap: 'var(--spacing-md)'
+          }}>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface-card)',
+                color: 'var(--text-primary)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                opacity: loading ? 0.5 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.currentTarget.style.background = 'var(--surface-card)';
+              }}
+            >
+              取消
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              style={{
+                flex: 2,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: 'none',
+                background: loading ? 'var(--surface-secondary)' : getActionColor(),
+                color: 'var(--text-white)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-bold)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                boxShadow: loading ? 'none' : 'var(--shadow-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--spacing-sm)'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                }
+              }}
+            >
+              {loading ? '处理中...' : `确认${getActionLabel()}`}
+            </button>
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 2. StrategyPreviewCard ====================
+    const StrategyPreviewCard = ({
+      strategyName = 'Funding Harvester',
+      strategyType = 'funding_harvester',
+      description = '通过现货+反向合约对冲，赚取资金费率收益',
+      totalInvestment = 2500,
+      selectedAssets = ['BTC', 'ETH'],
+      // Funding-specific params
+      fundingRateThreshold = 0.01, // 触发开仓的最低资金费率（%）
+      spotPerpRatio = '1:1', // 现货:合约比例
+      settlementFrequency = '每8小时',
+      minHoldingPeriod = '24小时', // 最短持仓周期
+      // General params
+      rebalanceFrequency = '每8小时',
+      historicalApy = { min: 15, max: 55 },
+      maxDrawdown = { min: 2, max: 5 },
+      riskLevel = 'low', // 'low' | 'medium' | 'high'
+      onConfirm = () => {},
+      onCancel = () => {},
+      onEdit = () => {},
+      loading = false,
+      showRiskAcknowledgement = false
+    }) => {
+      const [acknowledged, setAcknowledged] = useState(false);
+      const [detailsExpanded, setDetailsExpanded] = useState(false);
+      
+      const assetLogos = {
+        BTC: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1.png',
+        ETH: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
+        SOL: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png',
+        HYPE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/32196.png'
+      };
+      
+      return (
+        <div style={{
+          width: '100%',
+          maxWidth: '520px',
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-card)',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'hidden'
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            background: 'linear-gradient(135deg, var(--surface-accent) 0%, var(--surface-blue-light) 100%)',
+            borderBottom: '1px solid var(--border-light)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              marginBottom: 'var(--spacing-md)'
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px'
+                }}>
+                  AI 推荐策略
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-2xl)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--text-primary)',
+                  marginBottom: 'var(--spacing-xs)'
+                }}>
+                  {strategyName}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)'
+                }}>
+                  {description}
+                </div>
+              </div>
+              <button
+                onClick={onCancel}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'white',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'all var(--transition-fast)',
+                  flexShrink: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--surface-secondary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Expected Returns */}
+            <div style={{
+              display: 'flex',
+              gap: 'var(--spacing-lg)',
+              marginTop: 'var(--spacing-lg)'
+            }}>
+              <div style={{
+                flex: 1,
+                padding: 'var(--spacing-md)',
+                borderRadius: 'var(--radius-md)',
+                background: 'white',
+                border: '1px solid var(--border-light)'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px'
+                }}>
+                  历史年化收益
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--success)'
+                }}>
+                  {historicalApy.min}% - {historicalApy.max}%
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: 'var(--text-tertiary)',
+                  marginTop: '4px'
+                }}>
+                  取决于资金费率水平
+                </div>
+              </div>
+              <div style={{
+                flex: 1,
+                padding: 'var(--spacing-md)',
+                borderRadius: 'var(--radius-md)',
+                background: 'white',
+                border: '1px solid var(--border-light)'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px'
+                }}>
+                  历史最大回撤
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--warning)'
+                }}>
+                  {maxDrawdown.min}% - {maxDrawdown.max}%
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: 'var(--text-tertiary)',
+                  marginTop: '4px'
+                }}>
+                  价格对冲，风险较低
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Configuration */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-lg)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-primary)'
+              }}>
+                策略配置
+              </span>
+              <button
+                onClick={onEdit}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--brand-primary)',
+                  background: 'var(--surface-accent)',
+                  color: 'var(--brand-primary)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--weight-semibold)',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--brand-primary)';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--surface-accent)';
+                  e.currentTarget.style.color = 'var(--brand-primary)';
+                }}
+              >
+                编辑
+              </button>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-md)',
+              padding: 'var(--spacing-lg)',
+              borderRadius: 'var(--radius-lg)',
+              background: 'var(--surface-cool)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  总投入
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-lg)',
+                  fontWeight: 'var(--weight-bold)',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)'
+                }}>
+                  ${totalInvestment.toLocaleString()} USDC
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  目标资产
+                </span>
+                <div style={{
+                  display: 'flex',
+                  gap: 'var(--spacing-xs)',
+                  alignItems: 'center'
+                }}>
+                  {selectedAssets.map(asset => (
+                    <div
+                      key={asset}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'white',
+                        border: '1px solid var(--border-light)'
+                      }}
+                    >
+                      <img 
+                        src={assetLogos[asset]}
+                        alt={asset}
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--weight-semibold)',
+                        color: 'var(--text-primary)'
+                      }}>
+                        {asset}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  费率阈值
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)'
+                }}>
+                  ≥{(fundingRateThreshold * 100).toFixed(2)}%
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  持仓配置
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  现货:合约 {spotPerpRatio}
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  结算周期
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {settlementFrequency}
+                </span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  最短持仓
+                </span>
+                <span style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {minHoldingPeriod}
+                </span>
+              </div>
+            </div>
+            
+            {/* Expandable Details */}
+            <button
+              onClick={() => setDetailsExpanded(!detailsExpanded)}
+              style={{
+                padding: 'var(--spacing-md)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface-card)',
+                color: 'var(--brand-primary)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--weight-semibold)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--spacing-xs)',
+                transition: 'all var(--transition-base)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--surface-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--surface-card)';
+              }}
+            >
+              {detailsExpanded ? '收起' : '查看'} 策略详细原理
+              <span style={{
+                transform: detailsExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                transition: 'transform var(--transition-base)'
+              }}>
+                ▼
+              </span>
+            </button>
+            
+            {detailsExpanded && (
+              <div style={{
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-blue-light)',
+                border: '1px solid var(--border-light)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-relaxed)'
+              }}>
+                <div style={{
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)',
+                  marginBottom: 'var(--spacing-sm)'
+                }}>
+                  策略原理
+                </div>
+                Funding Harvester 通过持有现货 + 反向永续合约仓位来对冲价格风险，纯赚资金费率收益。当永续合约资金费率为正（多头付费给空头）时，买入现货并开空永续合约；反之亦然。策略会根据费率变化动态调整仓位。
+                <br/><br/>
+                该策略适合追求稳定收益、风险中性的投资者。年化收益取决于市场资金费率水平（通常 15-55%）。
+              </div>
+            )}
+            
+            {/* Risk Acknowledgement */}
+            {showRiskAcknowledgement && (
+              <div style={{
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--warning-light)',
+                border: '1px solid #EAB30820'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)',
+                  marginBottom: 'var(--spacing-sm)'
+                }}>
+                  ⚠️ 风险提示
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)',
+                  marginBottom: 'var(--spacing-md)'
+                }}>
+                  • 资金费率可能快速变化，影响收益预期<br/>
+                  • 需同时持有现货和合约，占用双倍资金<br/>
+                  • 极端行情下可能面临强平风险（保证金不足）<br/>
+                  • 建议定期监控持仓和费率变化
+                </div>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  cursor: 'pointer',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-primary)'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={acknowledged}
+                    onChange={(e) => setAcknowledged(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: 'var(--brand-primary)'
+                    }}
+                  />
+                  我已了解风险并愿意承担
+                </label>
+              </div>
+            )}
+          </div>
+          
+          {/* Actions */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            borderTop: '1px solid var(--border-light)',
+            display: 'flex',
+            gap: 'var(--spacing-md)'
+          }}>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface-card)',
+                color: 'var(--text-primary)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                opacity: loading ? 0.5 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.currentTarget.style.background = 'var(--surface-card)';
+              }}
+            >
+              取消
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading || (showRiskAcknowledgement && !acknowledged)}
+              style={{
+                flex: 2,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: 'none',
+                background: (loading || (showRiskAcknowledgement && !acknowledged)) 
+                  ? 'var(--surface-secondary)' 
+                  : 'var(--success)',
+                color: 'var(--text-white)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-bold)',
+                cursor: (loading || (showRiskAcknowledgement && !acknowledged)) ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                boxShadow: (loading || (showRiskAcknowledgement && !acknowledged)) ? 'none' : 'var(--shadow-md)',
+                opacity: (loading || (showRiskAcknowledgement && !acknowledged)) ? 0.5 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && !(showRiskAcknowledgement && !acknowledged)) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading && !(showRiskAcknowledgement && !acknowledged)) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                }
+              }}
+            >
+              {loading ? '启动中...' : '确认并启动策略'}
+            </button>
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 3. ConfirmDialog ====================
+    const ConfirmDialog = ({
+      title = '确认操作',
+      message = '确定要执行此操作吗？',
+      type = 'default', // 'default' | 'warning' | 'danger'
+      confirmText = '确认',
+      cancelText = '取消',
+      onConfirm = () => {},
+      onCancel = () => {},
+      loading = false,
+      details = null
+    }) => {
+      const getColors = () => {
+        switch (type) {
+          case 'warning':
+            return {
+              icon: '⚠️',
+              color: 'var(--warning)',
+              bg: 'var(--warning-light)'
+            };
+          case 'danger':
+            return {
+              icon: '🚨',
+              color: 'var(--danger)',
+              bg: 'var(--danger-light)'
+            };
+          default:
+            return {
+              icon: '💡',
+              color: 'var(--info)',
+              bg: 'var(--info-light)'
+            };
+        }
+      };
+      
+      const colors = getColors();
+      
+      return (
+          <div style={{
+            width: '100%',
+            maxWidth: '440px',
+            borderRadius: 'var(--radius-xl)',
+            background: 'var(--surface-card)',
+            boxShadow: 'var(--shadow-lg)',
+            overflow: 'hidden',
+            border: '1px solid var(--border-light)'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: 'var(--spacing-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-md)'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: colors.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px'
+              }}>
+                {colors.icon}
+              </div>
+              <div>
+                <div style={{
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--text-primary)',
+                  marginBottom: 'var(--spacing-xs)'
+                }}>
+                  {title}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)'
+                }}>
+                  {message}
+                </div>
+              </div>
+            </div>
+            
+            {/* Details */}
+            {details && (
+              <div style={{
+                padding: '0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl)'
+              }}>
+                <div style={{
+                  padding: 'var(--spacing-lg)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface-cool)',
+                  border: '1px solid var(--border-light)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)'
+                }}>
+                  {details}
+                </div>
+              </div>
+            )}
+            
+            {/* Actions */}
+            <div style={{
+              padding: 'var(--spacing-xl)',
+              borderTop: '1px solid var(--border-light)',
+              display: 'flex',
+              gap: 'var(--spacing-md)'
+            }}>
+              <button
+                onClick={onCancel}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: 'var(--spacing-lg)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--surface-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all var(--transition-base)',
+                  opacity: loading ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = 'var(--surface-secondary)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.background = 'var(--surface-card)';
+                }}
+              >
+                {cancelText}
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: 'var(--spacing-lg)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: 'none',
+                  background: loading ? 'var(--surface-secondary)' : colors.color,
+                  color: 'var(--text-white)',
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-bold)',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all var(--transition-base)',
+                  boxShadow: loading ? 'none' : 'var(--shadow-md)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }
+                }}
+              >
+                {loading ? '处理中...' : confirmText}
+              </button>
+            </div>
+          </div>
+      );
+    };
+    
+    // ==================== 4. TransferPanel ====================
+    const TransferPanel = ({
+      type = 'deposit', // 'deposit' | 'transfer'
+      fromAccount = 'Master Account',
+      toAccount = 'Agent Account',
+      availableBalance = 5420.50,
+      onConfirm = () => {},
+      onCancel = () => {},
+      loading = false
+    }) => {
+      const [amount, setAmount] = useState('');
+      const [error, setError] = useState(null);
+      
+      const handleAmountChange = (val) => {
+        setAmount(val);
+        const numVal = parseFloat(val);
+        if (numVal > availableBalance) {
+          setError('金额超过可用余额');
+        } else if (numVal < 10 && numVal > 0) {
+          setError('最小转账金额为 $10');
+        } else {
+          setError(null);
+        }
+      };
+      
+      const handleMaxClick = () => {
+        setAmount(availableBalance.toString());
+        setError(null);
+      };
+      
+      const canConfirm = amount && parseFloat(amount) >= 10 && parseFloat(amount) <= availableBalance && !loading;
+      
+      return (
+        <div style={{
+          width: '100%',
+          maxWidth: '440px',
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--surface-card)',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'hidden'
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            borderBottom: '1px solid var(--border-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{
+                fontSize: 'var(--text-2xl)',
+                fontWeight: 'var(--weight-bold)',
+                color: 'var(--text-primary)'
+              }}>
+                {type === 'deposit' ? '充值' : '资金划转'}
+              </div>
+              <div style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)',
+                marginTop: '4px'
+              }}>
+                {type === 'deposit' 
+                  ? '从主账户充值到 Agent 账户' 
+                  : `从 ${fromAccount} 转到 ${toAccount}`
+                }
+              </div>
+            </div>
+            <button
+              onClick={onCancel}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transition: 'all var(--transition-fast)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--border-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+            >
+              ×
+            </button>
+          </div>
+          
+          {/* Content */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-xl)'
+          }}>
+            {/* Flow Diagram */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 'var(--spacing-lg)',
+              borderRadius: 'var(--radius-lg)',
+              background: 'var(--surface-cool)'
+            }}>
+              <div style={{
+                flex: 1,
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px'
+                }}>
+                  从
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {fromAccount}
+                </div>
+              </div>
+              <div style={{
+                fontSize: '24px',
+                color: 'var(--brand-primary)'
+              }}>
+                →
+              </div>
+              <div style={{
+                flex: 1,
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px'
+                }}>
+                  到
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  {toAccount}
+                </div>
+              </div>
+            </div>
+            
+            {/* Amount Input */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-sm)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <label style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  转账金额
+                </label>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)'
+                }}>
+                  可用: <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'var(--weight-semibold)',
+                    color: 'var(--text-primary)'
+                  }}>
+                    ${availableBalance.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                padding: 'var(--spacing-md) var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: error 
+                  ? '2px solid var(--danger)' 
+                  : '1px solid var(--border-light)',
+                background: 'var(--surface-input)',
+                transition: 'all var(--transition-base)'
+              }}>
+                <div style={{
+                  fontSize: 'var(--text-xl)',
+                  color: 'var(--text-secondary)',
+                  marginRight: 'var(--spacing-sm)',
+                  fontWeight: 'var(--weight-medium)'
+                }}>
+                  $
+                </div>
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    handleAmountChange(val);
+                  }}
+                  placeholder="输入金额"
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    fontSize: 'var(--text-xl)',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'var(--weight-semibold)',
+                    color: 'var(--text-primary)',
+                    padding: 0
+                  }}
+                />
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)'
+                }}>
+                  <div style={{
+                    fontSize: 'var(--text-base)',
+                    fontWeight: 'var(--weight-semibold)',
+                    color: 'var(--text-secondary)',
+                    marginLeft: 'var(--spacing-sm)'
+                  }}>
+                    USDC
+                  </div>
+                  <button
+                    onClick={handleMaxClick}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--brand-primary)',
+                      background: 'var(--surface-accent)',
+                      color: 'var(--brand-primary)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--weight-semibold)',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--brand-primary)';
+                      e.currentTarget.style.color = 'var(--text-white)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--surface-accent)';
+                      e.currentTarget.style.color = 'var(--brand-primary)';
+                    }}
+                  >
+                    MAX
+                  </button>
+                </div>
+              </div>
+              
+              {error && (
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--danger)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-xs)'
+                }}>
+                  ⚠️ {error}
+                </div>
+              )}
+              
+              {!error && amount && (
+                <div style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-tertiary)'
+                }}>
+                  转账后余额: ${(availableBalance - parseFloat(amount)).toFixed(2)}
+                </div>
+              )}
+            </div>
+            
+            {/* Info */}
+            <div style={{
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--info-light)',
+              border: '1px solid #007FFF20',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)',
+              lineHeight: 'var(--leading-relaxed)'
+            }}>
+              💡 资金将即时到账，无需等待链上确认
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div style={{
+            padding: 'var(--spacing-xl)',
+            borderTop: '1px solid var(--border-light)',
+            display: 'flex',
+            gap: 'var(--spacing-md)'
+          }}>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--surface-card)',
+                color: 'var(--text-primary)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                opacity: loading ? 0.5 : 1
+              }}
+            >
+              取消
+            </button>
+            <button
+              onClick={() => onConfirm(parseFloat(amount))}
+              disabled={!canConfirm}
+              style={{
+                flex: 2,
+                padding: 'var(--spacing-lg)',
+                borderRadius: 'var(--radius-lg)',
+                border: 'none',
+                background: canConfirm ? 'var(--brand-primary)' : 'var(--surface-secondary)',
+                color: 'var(--text-white)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-bold)',
+                cursor: canConfirm ? 'pointer' : 'not-allowed',
+                transition: 'all var(--transition-base)',
+                boxShadow: canConfirm ? 'var(--shadow-md)' : 'none',
+                opacity: canConfirm ? 1 : 0.5
+              }}
+              onMouseEnter={(e) => {
+                if (canConfirm) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (canConfirm) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                }
+              }}
+            >
+              {loading ? '处理中...' : '确认转账'}
+            </button>
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== Demo Application ====================
+    function PreviewComponentsDemo() {
+      const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+      
+      return (
+        <DesignCanvas 
+          title="AI Trading Preview & Status Components"
+          subtitle="预览卡片、确认对话框、钱包面板等组件的完整交互规范"
+        >
+          <DCSection id="preview-cards" title="预览卡片">
+            <DCArtboard 
+              id="order-preview-perp" 
+              label="OrderPreviewCard - 永续合约"
+              width={520}
+              height={850}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%'
+              }}>
+                <OrderPreviewCard 
+                  marketType="perp"
+                  action="open_long"
+                  asset="ETH"
+                  orderType="limit"
+                  sizeUsd={500}
+                  leverage={2}
+                  limitPrice={2500}
+                  tpPercent={15}
+                  slPercent={5}
+                  estimatedQty={0.4}
+                  currentPrice={2500}
+                  onConfirm={() => alert('确认开仓')}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="order-preview-spot" 
+              label="OrderPreviewCard - 现货"
+              width={520}
+              height={750}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%'
+              }}>
+                <OrderPreviewCard 
+                  marketType="spot"
+                  action="buy"
+                  asset="BTC"
+                  orderType="market"
+                  sizeUsd={1000}
+                  leverage={1}
+                  estimatedQty={0.016}
+                  estimatedFee={2.5}
+                  currentPrice={62000}
+                  onConfirm={() => alert('确认买入')}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="strategy-preview" 
+              label="StrategyPreviewCard"
+              width={560}
+              height={920}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%'
+              }}>
+                <StrategyPreviewCard 
+                  strategyName="Funding Harvester"
+                  totalInvestment={2500}
+                  selectedAssets={['BTC', 'ETH']}
+                  fundingRateThreshold={0.01}
+                  spotPerpRatio="1:1"
+                  settlementFrequency="每8小时"
+                  minHoldingPeriod="24小时"
+                  historicalApy={{ min: 15, max: 55 }}
+                  maxDrawdown={{ min: 2, max: 5 }}
+                  riskLevel="low"
+                  showRiskAcknowledgement={true}
+                  onConfirm={() => alert('启动策略')}
+                  onCancel={() => alert('取消')}
+                  onEdit={() => alert('编辑配置')}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+          
+          <DCSection id="dialogs" title="对话框">
+            <DCArtboard 
+              id="confirm-dialog-default" 
+              label="ConfirmDialog - 默认"
+              width={500}
+              height={400}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%',
+                position: 'relative'
+              }}>
+                <ConfirmDialog 
+                  title="暂停策略"
+                  message="暂停后，策略将停止执行新操作，但现有仓位保留。"
+                  type="default"
+                  confirmText="确认暂停"
+                  onConfirm={() => alert('已暂停')}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="confirm-dialog-warning" 
+              label="ConfirmDialog - 警告"
+              width={500}
+              height={400}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%',
+                position: 'relative'
+              }}>
+                <ConfirmDialog 
+                  title="修改杠杆倍数"
+                  message="修改杠杆会影响当前持仓的风险水平。"
+                  details="将杠杆从 2x 调整为 5x 后，强平价格将从 $1,250 上升至 $2,000。"
+                  type="warning"
+                  confirmText="确认修改"
+                  onConfirm={() => alert('已修改')}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="confirm-dialog-danger" 
+              label="ConfirmDialog - 危险操作"
+              width={500}
+              height={400}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%',
+                position: 'relative'
+              }}>
+                <ConfirmDialog 
+                  title="删除策略"
+                  message="此操作将永久删除策略及其历史数据，无法恢复。"
+                  type="danger"
+                  confirmText="确认删除"
+                  cancelText="取消"
+                  onConfirm={() => alert('已删除')}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+          
+          <DCSection id="panels" title="面板组件">
+            <DCArtboard 
+              id="transfer-panel" 
+              label="TransferPanel - 充值"
+              width={500}
+              height={600}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%'
+              }}>
+                <TransferPanel 
+                  type="deposit"
+                  fromAccount="Master Account"
+                  toAccount="Agent Account"
+                  availableBalance={5420.50}
+                  onConfirm={(amount) => alert(`充值 $${amount}`)}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="transfer-panel-move" 
+              label="TransferPanel - 资金划转"
+              width={500}
+              height={600}
+            >
+              <div style={{ 
+                padding: 'var(--spacing-xl)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100%'
+              }}>
+                <TransferPanel 
+                  type="transfer"
+                  fromAccount="Agent Account"
+                  toAccount="Master Account"
+                  availableBalance={1250.00}
+                  onConfirm={(amount) => alert(`划转 $${amount}`)}
+                  onCancel={() => alert('取消')}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+    
+    // Add animation keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PreviewComponentsDemo />);
+  </script>
+</body>
+</html>

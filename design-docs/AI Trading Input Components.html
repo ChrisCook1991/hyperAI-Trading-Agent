@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Trading Input Components - 设计规范</title>
+  <link rel="stylesheet" href="design-tokens.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: var(--font-body), var(--font-chinese);
+      background: var(--surface-background);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #root {
+      width: 100%;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel">
+    const { useState } = React;
+    const { DesignCanvas, DCArtboard, DCSection } = window;
+    
+    // ==================== 1. RiskPreferenceSelector ====================
+    const RiskPreferenceSelector = ({ 
+      value = null, 
+      onChange = () => {},
+      disabled = false 
+    }) => {
+      const options = [
+        {
+          id: 'conservative',
+          label: '保守型',
+          description: '稳健收益，控制风险',
+          icon: '🛡️',
+          color: '#10B981'
+        },
+        {
+          id: 'balanced',
+          label: '稳健型',
+          description: '平衡风险与收益',
+          icon: '⚖️',
+          color: '#007FFF'
+        },
+        {
+          id: 'aggressive',
+          label: '进取型',
+          description: '追求高收益',
+          icon: '🚀',
+          color: '#EAB308'
+        }
+      ];
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)',
+          width: '100%'
+        }}>
+          <div style={{
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--weight-semibold)',
+            color: 'var(--text-primary)',
+            marginBottom: 'var(--spacing-xs)'
+          }}>
+            你的风险偏好是？
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 'var(--spacing-md)'
+          }}>
+            {options.map(option => (
+              <button
+                key={option.id}
+                onClick={() => !disabled && onChange(option.id)}
+                disabled={disabled}
+                style={{
+                  padding: 'var(--spacing-lg)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: value === option.id 
+                    ? `2px solid ${option.color}` 
+                    : '1px solid var(--border-light)',
+                  background: value === option.id 
+                    ? `${option.color}08` 
+                    : 'var(--surface-card)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  transition: 'all var(--transition-base)',
+                  opacity: disabled ? 0.5 : 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  boxShadow: value === option.id 
+                    ? `var(--shadow-md), 0 0 0 3px ${option.color}18` 
+                    : 'var(--shadow-sm)',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!disabled && value !== option.id) {
+                    e.currentTarget.style.borderColor = option.color;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!disabled && value !== option.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-light)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <div style={{ fontSize: '32px', lineHeight: 1 }}>
+                  {option.icon}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: value === option.id ? option.color : 'var(--text-primary)'
+                }}>
+                  {option.label}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)',
+                  textAlign: 'center'
+                }}>
+                  {option.description}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 2. ReturnRateSelector ====================
+    const ReturnRateSelector = ({ 
+      value = null, 
+      onChange = () => {},
+      disabled = false 
+    }) => {
+      const options = [
+        { id: 'low', range: '5% - 12%', label: '稳健收益', color: '#10B981' },
+        { id: 'medium', range: '12% - 18%', label: '平衡收益', color: '#007FFF' },
+        { id: 'high', range: '18% - 25%', label: '积极收益', color: '#EAB308' },
+        { id: 'vhigh', range: '25%+', label: '高风险高收益', color: '#D4183D' }
+      ];
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)',
+          width: '100%'
+        }}>
+          <div style={{
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--weight-semibold)',
+            color: 'var(--text-primary)',
+            marginBottom: 'var(--spacing-xs)'
+          }}>
+            期望的年化收益率
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 'var(--spacing-md)'
+          }}>
+            {options.map(option => (
+              <button
+                key={option.id}
+                onClick={() => !disabled && onChange(option.id)}
+                disabled={disabled}
+                style={{
+                  padding: 'var(--spacing-lg)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: value === option.id 
+                    ? `2px solid ${option.color}` 
+                    : '1px solid var(--border-light)',
+                  background: value === option.id 
+                    ? `${option.color}08` 
+                    : 'var(--surface-card)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  transition: 'all var(--transition-base)',
+                  opacity: disabled ? 0.5 : 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--spacing-xs)',
+                  boxShadow: value === option.id 
+                    ? `var(--shadow-md), 0 0 0 3px ${option.color}18` 
+                    : 'var(--shadow-sm)',
+                  outline: 'none',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  if (!disabled && value !== option.id) {
+                    e.currentTarget.style.borderColor = option.color;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!disabled && value !== option.id) {
+                    e.currentTarget.style.borderColor = 'var(--border-light)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--text-2xl)',
+                  fontWeight: 'var(--weight-bold)',
+                  color: value === option.id ? option.color : 'var(--text-primary)'
+                }}>
+                  {option.range}
+                </div>
+                <div style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)'
+                }}>
+                  {option.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 3. AmountInput ====================
+    const AmountInput = ({ 
+      value = '', 
+      onChange = () => {},
+      onBlur = () => {},
+      placeholder = '请输入金额',
+      currency = 'USDC',
+      min = 10,
+      max = null,
+      error = null,
+      disabled = false,
+      balance = null,
+      showBalance = true
+    }) => {
+      const [focused, setFocused] = useState(false);
+      
+      const handleMaxClick = () => {
+        if (balance && !disabled) {
+          onChange(balance.toString());
+        }
+      };
+      
+      const formatBalance = (val) => {
+        if (!val) return '0';
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(val);
+      };
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-sm)',
+          width: '100%'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <label style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)'
+            }}>
+              投入金额
+            </label>
+            {showBalance && balance !== null && (
+              <div style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)'
+              }}>
+                可用余额: <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)'
+                }}>
+                  ${formatBalance(balance)}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 'var(--spacing-md) var(--spacing-lg)',
+            borderRadius: 'var(--radius-lg)',
+            border: error 
+              ? '2px solid var(--danger)' 
+              : focused 
+                ? '2px solid var(--border-focus)' 
+                : '1px solid var(--border-light)',
+            background: disabled ? 'var(--surface-secondary)' : 'var(--surface-input)',
+            transition: 'all var(--transition-base)',
+            boxShadow: focused ? 'var(--shadow-blue)' : 'var(--shadow-sm)'
+          }}>
+            <div style={{
+              fontSize: 'var(--text-xl)',
+              color: 'var(--text-secondary)',
+              marginRight: 'var(--spacing-sm)',
+              fontWeight: 'var(--weight-medium)'
+            }}>
+              $
+            </div>
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, '');
+                onChange(val);
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={(e) => {
+                setFocused(false);
+                onBlur(e);
+              }}
+              placeholder={placeholder}
+              disabled={disabled}
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 'var(--text-xl)',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-primary)',
+                padding: 0
+              }}
+            />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-sm)'
+            }}>
+              <div style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-secondary)',
+                marginLeft: 'var(--spacing-sm)'
+              }}>
+                {currency}
+              </div>
+              {balance !== null && (
+                <button
+                  onClick={handleMaxClick}
+                  disabled={disabled}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--brand-primary)',
+                    background: 'var(--surface-accent)',
+                    color: 'var(--brand-primary)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--weight-semibold)',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    transition: 'all var(--transition-fast)',
+                    opacity: disabled ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!disabled) {
+                      e.currentTarget.style.background = 'var(--brand-primary)';
+                      e.currentTarget.style.color = 'var(--text-white)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!disabled) {
+                      e.currentTarget.style.background = 'var(--surface-accent)';
+                      e.currentTarget.style.color = 'var(--brand-primary)';
+                    }
+                  }}
+                >
+                  MAX
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {error && (
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--danger)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs)'
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+          
+          {!error && min && (
+            <div style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-tertiary)'
+            }}>
+              最小金额: ${min}
+            </div>
+          )}
+        </div>
+      );
+    };
+    
+    // ==================== 4. AssetMultiSelect ====================
+    const AssetMultiSelect = ({ 
+      value = [], 
+      onChange = () => {},
+      disabled = false,
+      max = null
+    }) => {
+      const assets = [
+        { 
+          id: 'BTC', 
+          name: 'Bitcoin', 
+          logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1.png', 
+          color: '#F7931A',
+          apy: '8.2%'
+        },
+        { 
+          id: 'ETH', 
+          name: 'Ethereum', 
+          logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png', 
+          color: '#627EEA',
+          apy: '12.5%'
+        },
+        { 
+          id: 'SOL', 
+          name: 'Solana', 
+          logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png', 
+          color: '#14F195',
+          apy: '15.8%'
+        },
+        { 
+          id: 'HYPE', 
+          name: 'Hyperliquid', 
+          logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/32196.png', 
+          color: '#007FFF',
+          apy: '18.3%'
+        }
+      ];
+      
+      const handleToggle = (assetId) => {
+        if (disabled) return;
+        
+        if (value.includes(assetId)) {
+          onChange(value.filter(id => id !== assetId));
+        } else {
+          if (max && value.length >= max) return;
+          onChange([...value, assetId]);
+        }
+      };
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)',
+          width: '100%'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)'
+            }}>
+              选择目标资产
+            </div>
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)'
+            }}>
+              已选 {value.length}{max ? `/${max}` : ''}
+            </div>
+          </div>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 'var(--spacing-md)'
+          }}>
+            {assets.map(asset => {
+              const isSelected = value.includes(asset.id);
+              const isMaxReached = max && value.length >= max && !isSelected;
+              
+              return (
+                <button
+                  key={asset.id}
+                  onClick={() => handleToggle(asset.id)}
+                  disabled={disabled || isMaxReached}
+                  style={{
+                    padding: 'var(--spacing-lg)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: isSelected 
+                      ? `2px solid ${asset.color}` 
+                      : '1px solid var(--border-light)',
+                    background: isSelected 
+                      ? `${asset.color}08` 
+                      : 'var(--surface-card)',
+                    cursor: (disabled || isMaxReached) ? 'not-allowed' : 'pointer',
+                    transition: 'all var(--transition-base)',
+                    opacity: (disabled || isMaxReached) ? 0.4 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-md)',
+                    boxShadow: isSelected 
+                      ? `var(--shadow-md), 0 0 0 3px ${asset.color}18` 
+                      : 'var(--shadow-sm)',
+                    outline: 'none',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!disabled && !isMaxReached && !isSelected) {
+                      e.currentTarget.style.borderColor = asset.color;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!disabled && !isMaxReached && !isSelected) {
+                      e.currentTarget.style.borderColor = 'var(--border-light)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  {isSelected && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'var(--spacing-sm)',
+                      right: 'var(--spacing-sm)',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: asset.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </div>
+                  )}
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: 'var(--radius-md)',
+                    background: `${asset.color}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                  }}>
+                    <img 
+                      src={asset.logo} 
+                      alt={asset.id}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <div style={{
+                      fontSize: 'var(--text-base)',
+                      fontWeight: 'var(--weight-semibold)',
+                      color: isSelected ? asset.color : 'var(--text-primary)',
+                      marginBottom: '2px'
+                    }}>
+                      {asset.id}
+                    </div>
+                    <div style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      APY ~{asset.apy}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            padding: 'var(--spacing-sm)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-blue-light)'
+          }}>
+            💡 提示：选择多个资产可以分散风险
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 5. LeverageSlider ====================
+    const LeverageSlider = ({ 
+      value = 1, 
+      onChange = () => {},
+      min = 1,
+      max = 5,
+      disabled = false,
+      marketType = 'perp'
+    }) => {
+      const [isDragging, setIsDragging] = useState(false);
+      
+      const getRiskLevel = (leverage) => {
+        if (leverage <= 2) return { label: '低风险', color: '#10B981' };
+        if (leverage <= 3) return { label: '中风险', color: '#007FFF' };
+        if (leverage <= 4) return { label: '高风险', color: '#EAB308' };
+        return { label: '极高风险', color: '#D4183D' };
+      };
+      
+      const risk = getRiskLevel(value);
+      const percentage = ((value - min) / (max - min)) * 100;
+      
+      if (marketType === 'spot') {
+        return (
+          <div style={{
+            padding: 'var(--spacing-lg)',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--surface-secondary)',
+            border: '1px solid var(--border-light)'
+          }}>
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)',
+              textAlign: 'center'
+            }}>
+              现货交易无杠杆（1x）
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-lg)',
+          width: '100%'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)'
+            }}>
+              杠杆倍数
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 'var(--spacing-xs)'
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-3xl)',
+                fontWeight: 'var(--weight-bold)',
+                color: risk.color
+              }}>
+                {value}x
+              </span>
+              <span style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--weight-semibold)',
+                color: risk.color,
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: `${risk.color}15`
+              }}>
+                {risk.label}
+              </span>
+            </div>
+          </div>
+          
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '8px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--surface-secondary)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.5 : 1
+          }}>
+            <div style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: `${percentage}%`,
+              height: '100%',
+              borderRadius: 'var(--radius-full)',
+              background: `linear-gradient(90deg, #10B981, #007FFF, #EAB308, #D4183D)`,
+              transition: isDragging ? 'none' : 'width var(--transition-base)'
+            }} />
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={1}
+              value={value}
+              onChange={(e) => onChange(parseFloat(e.target.value))}
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={() => setIsDragging(false)}
+              onTouchStart={() => setIsDragging(true)}
+              onTouchEnd={() => setIsDragging(false)}
+              disabled={disabled}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '100%',
+                height: '24px',
+                opacity: 0,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                zIndex: 2
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              left: `${percentage}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'white',
+              border: `3px solid ${risk.color}`,
+              boxShadow: 'var(--shadow-md)',
+              transition: isDragging ? 'none' : 'all var(--transition-base)',
+              pointerEvents: 'none',
+              zIndex: 1
+            }} />
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)'
+          }}>
+            <span>1x</span>
+            <span>2x</span>
+            <span>3x</span>
+            <span>4x</span>
+            <span>5x</span>
+          </div>
+          
+          <div style={{
+            padding: 'var(--spacing-md)',
+            borderRadius: 'var(--radius-md)',
+            background: value > 3 ? 'var(--danger-light)' : 'var(--info-light)',
+            border: `1px solid ${value > 3 ? '#D4183D20' : '#007FFF20'}`
+          }}>
+            <div style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-primary)',
+              marginBottom: 'var(--spacing-xs)'
+            }}>
+              {value > 3 ? '⚠️ 高杠杆风险提示' : '💡 风险说明'}
+            </div>
+            <div style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-secondary)',
+              lineHeight: 'var(--leading-relaxed)'
+            }}>
+              {value > 3 
+                ? `${value}x 杠杆下，价格波动 ${(100/value).toFixed(1)}% 即可能触发强平。请谨慎使用。`
+                : `名义仓位将扩大至本金的 ${value} 倍，收益和风险同步放大。`
+              }
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 6. MarketTypeSelector ====================
+    const MarketTypeSelector = ({ 
+      value = null, 
+      onChange = () => {},
+      disabled = false 
+    }) => {
+      const options = [
+        {
+          id: 'perp',
+          label: '永续合约',
+          shortLabel: 'Perp',
+          description: '支持做多做空，可使用杠杆',
+          features: ['双向交易', '最高5x杠杆', '资金费率'],
+          icon: '📈',
+          color: '#007FFF'
+        },
+        {
+          id: 'spot',
+          label: '现货交易',
+          shortLabel: 'Spot',
+          description: '买入并持有，无杠杆',
+          features: ['仅做多', '无杠杆', '长期持有'],
+          icon: '💰',
+          color: '#10B981'
+        }
+      ];
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)',
+          width: '100%'
+        }}>
+          <div style={{
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--weight-semibold)',
+            color: 'var(--text-primary)'
+          }}>
+            选择市场类型
+          </div>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 'var(--spacing-lg)'
+          }}>
+            {options.map(option => {
+              const isSelected = value === option.id;
+              
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => !disabled && onChange(option.id)}
+                  disabled={disabled}
+                  style={{
+                    padding: 'var(--spacing-xl)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: isSelected 
+                      ? `2px solid ${option.color}` 
+                      : '1px solid var(--border-light)',
+                    background: isSelected 
+                      ? `${option.color}08` 
+                      : 'var(--surface-card)',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    transition: 'all var(--transition-base)',
+                    opacity: disabled ? 0.5 : 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--spacing-md)',
+                    boxShadow: isSelected 
+                      ? `var(--shadow-md), 0 0 0 3px ${option.color}18` 
+                      : 'var(--shadow-sm)',
+                    outline: 'none',
+                    textAlign: 'left'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!disabled && !isSelected) {
+                      e.currentTarget.style.borderColor = option.color;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!disabled && !isSelected) {
+                      e.currentTarget.style.borderColor = 'var(--border-light)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-md)'
+                  }}>
+                    <div style={{
+                      fontSize: '32px',
+                      lineHeight: 1
+                    }}>
+                      {option.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: 'var(--text-lg)',
+                        fontWeight: 'var(--weight-bold)',
+                        color: isSelected ? option.color : 'var(--text-primary)',
+                        marginBottom: '2px'
+                      }}>
+                        {option.label}
+                      </div>
+                      <div style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        {option.description}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 'var(--spacing-xs)'
+                  }}>
+                    {option.features.map((feature, idx) => (
+                      <span
+                        key={idx}
+                        style={{
+                          fontSize: 'var(--text-xs)',
+                          padding: '4px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isSelected 
+                            ? `${option.color}15` 
+                            : 'var(--surface-secondary)',
+                          color: isSelected ? option.color : 'var(--text-secondary)',
+                          fontWeight: 'var(--weight-medium)'
+                        }}
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--text-tertiary)',
+            padding: 'var(--spacing-sm)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-blue-light)',
+            lineHeight: 'var(--leading-relaxed)'
+          }}>
+            💡 新手建议：如果不熟悉合约交易，建议先从现货开始
+          </div>
+        </div>
+      );
+    };
+    
+    // ==================== 7. TpSlInput ====================
+    const TpSlInput = ({ 
+      tpValue = '', 
+      slValue = '',
+      onTpChange = () => {},
+      onSlChange = () => {},
+      disabled = false,
+      currentPrice = null,
+      side = 'long'
+    }) => {
+      const [tpFocused, setTpFocused] = useState(false);
+      const [slFocused, setSlFocused] = useState(false);
+      
+      const calculatePrice = (percent, type) => {
+        if (!currentPrice || !percent) return null;
+        const multiplier = type === 'tp' 
+          ? (side === 'long' ? 1 + percent/100 : 1 - percent/100)
+          : (side === 'long' ? 1 - percent/100 : 1 + percent/100);
+        return (currentPrice * multiplier).toFixed(2);
+      };
+      
+      const tpPrice = calculatePrice(parseFloat(tpValue), 'tp');
+      const slPrice = calculatePrice(parseFloat(slValue), 'sl');
+      
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-lg)',
+          width: '100%'
+        }}>
+          <div style={{
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--weight-semibold)',
+            color: 'var(--text-primary)'
+          }}>
+            止盈止损设置
+          </div>
+          
+          {currentPrice && (
+            <div style={{
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--surface-cool)',
+              border: '1px solid var(--border-light)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)'
+              }}>
+                当前价格
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 'var(--weight-bold)',
+                color: 'var(--text-primary)'
+              }}>
+                ${currentPrice}
+              </span>
+            </div>
+          )}
+          
+          {/* Take Profit */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-sm)'
+          }}>
+            <label style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs)'
+            }}>
+              <span style={{ color: 'var(--success)' }}>📈</span>
+              止盈 (Take Profit)
+            </label>
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-lg)',
+              border: tpFocused 
+                ? '2px solid var(--success)' 
+                : '1px solid var(--border-light)',
+              background: disabled ? 'var(--surface-secondary)' : 'var(--surface-input)',
+              transition: 'all var(--transition-base)',
+              boxShadow: tpFocused ? `0 0 0 3px #10B98118` : 'var(--shadow-sm)'
+            }}>
+              <input
+                type="text"
+                value={tpValue}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  onTpChange(val);
+                }}
+                onFocus={() => setTpFocused(true)}
+                onBlur={() => setTpFocused(false)}
+                placeholder="15"
+                disabled={disabled}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 'var(--text-lg)',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)',
+                  padding: 0
+                }}
+              />
+              <div style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-secondary)'
+              }}>
+                %
+              </div>
+            </div>
+            {tpPrice && (
+              <div style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--success)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-xs)'
+              }}>
+                ✓ 触发价格: <span style={{ 
+                  fontFamily: 'var(--font-mono)', 
+                  fontWeight: 'var(--weight-semibold)' 
+                }}>
+                  ${tpPrice}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Stop Loss */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-sm)'
+          }}>
+            <label style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs)'
+            }}>
+              <span style={{ color: 'var(--danger)' }}>📉</span>
+              止损 (Stop Loss)
+            </label>
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-lg)',
+              border: slFocused 
+                ? '2px solid var(--danger)' 
+                : '1px solid var(--border-light)',
+              background: disabled ? 'var(--surface-secondary)' : 'var(--surface-input)',
+              transition: 'all var(--transition-base)',
+              boxShadow: slFocused ? `0 0 0 3px #D4183D18` : 'var(--shadow-sm)'
+            }}>
+              <input
+                type="text"
+                value={slValue}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  onSlChange(val);
+                }}
+                onFocus={() => setSlFocused(true)}
+                onBlur={() => setSlFocused(false)}
+                placeholder="5"
+                disabled={disabled}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 'var(--text-lg)',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-primary)',
+                  padding: 0
+                }}
+              />
+              <div style={{
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-secondary)'
+              }}>
+                %
+              </div>
+            </div>
+            {slPrice && (
+              <div style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--danger)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--spacing-xs)'
+              }}>
+                ✓ 触发价格: <span style={{ 
+                  fontFamily: 'var(--font-mono)', 
+                  fontWeight: 'var(--weight-semibold)' 
+                }}>
+                  ${slPrice}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {!slValue && (
+            <div style={{
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--warning-light)',
+              border: '1px solid #EAB30820'
+            }}>
+              <div style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-primary)',
+                marginBottom: 'var(--spacing-xs)'
+              }}>
+                ⚠️ 建议设置止损
+              </div>
+              <div style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-relaxed)'
+              }}>
+                未设置止损可能导致亏损扩大，建议设置合理的止损比例
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+    
+    // ==================== Demo Application ====================
+    function InputWidgetsDemo() {
+      // State for all components
+      const [risk, setRisk] = useState(null);
+      const [returnRate, setReturnRate] = useState(null);
+      const [amount, setAmount] = useState('');
+      const [assets, setAssets] = useState([]);
+      const [leverage, setLeverage] = useState(2);
+      const [marketType, setMarketType] = useState(null);
+      const [tpPercent, setTpPercent] = useState('');
+      const [slPercent, setSlPercent] = useState('');
+      
+      return (
+        <DesignCanvas 
+          title="AI Trading Input Components"
+          subtitle="7个输入类组件的完整交互规范 · 基于 imToken Design System v4.0"
+        >
+          <DCSection id="selectors" title="选择器组件">
+            <DCArtboard 
+              id="risk-selector" 
+              label="RiskPreferenceSelector 风险偏好"
+              width={800}
+              height={280}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <RiskPreferenceSelector 
+                  value={risk}
+                  onChange={setRisk}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="return-selector" 
+              label="ReturnRateSelector 收益率选择"
+              width={800}
+              height={360}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <ReturnRateSelector 
+                  value={returnRate}
+                  onChange={setReturnRate}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="market-selector" 
+              label="MarketTypeSelector 市场类型"
+              width={800}
+              height={380}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <MarketTypeSelector 
+                  value={marketType}
+                  onChange={setMarketType}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+          
+          <DCSection id="inputs" title="输入组件">
+            <DCArtboard 
+              id="amount-input" 
+              label="AmountInput 金额输入"
+              width={600}
+              height={200}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <AmountInput 
+                  value={amount}
+                  onChange={setAmount}
+                  balance={5420.50}
+                  min={10}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="amount-error" 
+              label="AmountInput - 错误状态"
+              width={600}
+              height={200}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <AmountInput 
+                  value="5"
+                  onChange={() => {}}
+                  balance={5420.50}
+                  min={10}
+                  error="金额不能小于 $10"
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="tpsl-input" 
+              label="TpSlInput 止盈止损"
+              width={600}
+              height={520}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <TpSlInput 
+                  tpValue={tpPercent}
+                  slValue={slPercent}
+                  onTpChange={setTpPercent}
+                  onSlChange={setSlPercent}
+                  currentPrice={2500}
+                  side="long"
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+          
+          <DCSection id="complex" title="复合组件">
+            <DCArtboard 
+              id="asset-multi" 
+              label="AssetMultiSelect 资产多选"
+              width={700}
+              height={420}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <AssetMultiSelect 
+                  value={assets}
+                  onChange={setAssets}
+                  max={3}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="leverage-slider" 
+              label="LeverageSlider 杠杆滑块"
+              width={700}
+              height={360}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <LeverageSlider 
+                  value={leverage}
+                  onChange={setLeverage}
+                  min={1}
+                  max={5}
+                  marketType="perp"
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="leverage-spot" 
+              label="LeverageSlider - 现货模式"
+              width={700}
+              height={150}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <LeverageSlider 
+                  value={1}
+                  onChange={() => {}}
+                  marketType="spot"
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+          
+          <DCSection id="states" title="组件状态演示">
+            <DCArtboard 
+              id="disabled-states" 
+              label="禁用状态"
+              width={800}
+              height={280}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <RiskPreferenceSelector 
+                  value="balanced"
+                  onChange={() => {}}
+                  disabled={true}
+                />
+              </div>
+            </DCArtboard>
+            
+            <DCArtboard 
+              id="amount-disabled" 
+              label="AmountInput - 禁用"
+              width={600}
+              height={180}
+            >
+              <div style={{ padding: 'var(--spacing-xl)' }}>
+                <AmountInput 
+                  value="1000"
+                  onChange={() => {}}
+                  balance={5420.50}
+                  disabled={true}
+                />
+              </div>
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+    
+    // Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<InputWidgetsDemo />);
+  </script>
+</body>
+</html>
